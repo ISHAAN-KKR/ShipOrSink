@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY;
-const GROQ_ENDPOINT = process.env.NEXT_PUBLIC_GROQ_ENDPOINT;
 
 const hints = [
   'I skipped gym again',
@@ -55,6 +54,130 @@ function parseResponse(text) {
   return { judgment, score };
 }
 
+// ── Canvas helpers ──────────────────────────────────────────────────────────
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  for (const word of words) {
+    const test = line + word + ' ';
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line.trim(), x, y);
+      line = word + ' ';
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  ctx.fillText(line.trim(), x, y);
+}
+
+function generateMemeDataURL(input, judgment, score) {
+  const canvas = document.createElement('canvas');
+  const W = 800;
+  const H = 420;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#0d0d0f');
+  bgGrad.addColorStop(0.5, '#130d1f');
+  bgGrad.addColorStop(1, '#0d0d0f');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid texture
+  ctx.fillStyle = 'rgba(124,58,237,0.06)';
+  for (let i = 0; i < W; i += 40) ctx.fillRect(i, 0, 1, H);
+  for (let i = 0; i < H; i += 40) ctx.fillRect(0, i, W, 1);
+
+  // Gradient border
+  const borderGrad = ctx.createLinearGradient(0, 0, W, H);
+  borderGrad.addColorStop(0, '#a78bfa');
+  borderGrad.addColorStop(0.5, '#ec4899');
+  borderGrad.addColorStop(1, '#f97316');
+  ctx.strokeStyle = borderGrad;
+  ctx.lineWidth = 3;
+  roundRectPath(ctx, 6, 6, W - 12, H - 12, 16);
+  ctx.stroke();
+
+  // Branding
+  ctx.font = 'bold 13px monospace';
+  ctx.fillStyle = '#3a3a50';
+  ctx.textAlign = 'left';
+  ctx.fillText('AI LIFE JUDGE', 28, 38);
+  ctx.textAlign = 'right';
+  ctx.fillText('aijudge.app', W - 28, 38);
+  ctx.textAlign = 'left';
+
+  // Confession pill background
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  roundRectPath(ctx, 24, 52, W - 48, 76, 10);
+  ctx.fill();
+
+  ctx.font = 'italic 14px Georgia, serif';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('confession:', 36, 76);
+
+  ctx.font = 'italic 17px Georgia, serif';
+  ctx.fillStyle = '#c4b5fd';
+  wrapText(ctx, `"${input}"`, 36, 100, W - 72, 22);
+
+  // Divider
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(24, 156, W - 48, 1);
+
+  // Big emoji
+  ctx.font = '56px serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(getEmoji(score), W - 36, 258);
+  ctx.textAlign = 'left';
+
+  // Verdict
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('VERDICT', 36, 182);
+
+  ctx.font = '20px Georgia, serif';
+  ctx.fillStyle = '#e8e6ff';
+  wrapText(ctx, `"${judgment}"`, 36, 210, W - 180, 28);
+
+  // Score
+  const scoreColor = getScoreColor(score);
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('LIFE SCORE', 36, H - 78);
+
+  ctx.font = 'bold 80px Arial';
+  ctx.fillStyle = scoreColor;
+  ctx.fillText(`${score}`, 30, H - 16);
+
+  const scoreW = ctx.measureText(`${score}`).width;
+  ctx.font = 'bold 20px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('/100', 36 + scoreW - 4, H - 28);
+
+  return canvas.toDataURL('image/png');
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+
 export default function Home() {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('savage');
@@ -67,8 +190,9 @@ export default function Home() {
   const [splat, setSplat] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [hint, setHint] = useState('');
+  const [memeDataURL, setMemeDataURL] = useState('');
+  const [memeVisible, setMemeVisible] = useState(false);
 
-  // Set random hint on client side only to avoid hydration mismatch
   useEffect(() => {
     setHint(hints[Math.floor(Math.random() * hints.length)]);
   }, []);
@@ -106,6 +230,8 @@ export default function Home() {
     setLoading(true);
     setJudgment('');
     setScore(null);
+    setMemeDataURL('');
+    setMemeVisible(false);
 
     const tone = tones[mode];
     const prompt = `You are a ruthlessly funny AI judge of poor life decisions. ${tone}
@@ -146,6 +272,10 @@ Score: [number]`;
 
       setJudgment(judgeText);
       setScore(scoreNum);
+
+      // Generate meme card
+      const dataURL = generateMemeDataURL(input, judgeText, scoreNum);
+      setMemeDataURL(dataURL);
     } catch (err) {
       triggerPoopExplosion();
       setError(`The judge exploded. Probably your fault. (${err.message || 'Unknown error'})`);
@@ -166,6 +296,28 @@ Score: [number]`;
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  }
+
+  function handleDownloadMeme() {
+    if (!memeDataURL) return;
+    const a = document.createElement('a');
+    a.download = `my-shame-score-${score}.png`;
+    a.href = memeDataURL;
+    a.click();
+  }
+
+  function handleShareTwitter() {
+    const text = encodeURIComponent(
+      `I confessed my life choices to an AI judge and scored ${score}/100 ${getEmoji(score)}\n\n"${input}"\n\nVerdict: "${judgment}"\n\n#AIJudge #LifeChoices`
+    );
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+  }
+
+  function handleShareWhatsApp() {
+    const text = encodeURIComponent(
+      `😂 AI just judged my life choice and I scored *${score}/100* ${getEmoji(score)}\n\n*Confession:* "${input}"\n\n*Verdict:* "${judgment}"\n\nTry it yourself 👇`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   }
 
   return (
@@ -195,6 +347,11 @@ Score: [number]`;
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes popIn {
+          0% { transform: scale(0.9); opacity: 0; }
+          60% { transform: scale(1.03); }
+          100% { transform: scale(1); opacity: 1; }
+        }
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
@@ -220,6 +377,9 @@ Score: [number]`;
         .result-animate {
           animation: fadeSlide 0.4s ease;
         }
+        .share-section-animate {
+          animation: popIn 0.35s ease forwards;
+        }
         .spinner {
           display: inline-block;
           animation: spin 1s linear infinite;
@@ -234,6 +394,39 @@ Score: [number]`;
         .copy-btn:hover {
           background: rgba(255,255,255,0.1) !important;
           color: #e8e6ff !important;
+        }
+        .share-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          border: none;
+          border-radius: 10px;
+          padding: 0.6rem 0.5rem;
+          color: white;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          transition: transform 0.15s, filter 0.15s;
+        }
+        .share-btn:hover {
+          transform: scale(1.04);
+          filter: brightness(1.12);
+        }
+        .share-btn:active {
+          transform: scale(0.97);
+        }
+        .share-btn.download { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .share-btn.twitter { background: #1d9bf0; }
+        .share-btn.whatsapp { background: #25d366; }
+        .meme-preview-img {
+          display: block;
+          width: 100%;
+          border-radius: 10px;
+          border: 1px solid #2a2a3a;
+          margin-top: 10px;
+          animation: popIn 0.4s ease forwards;
         }
       `}</style>
 
@@ -438,6 +631,7 @@ Score: [number]`;
                   background: getResultBg(score),
                 }}
               >
+                {/* Judgment text */}
                 <p style={{
                   fontSize: '1.05rem', lineHeight: 1.7, color: '#e8e6ff',
                   fontStyle: 'italic', marginBottom: '1.25rem',
@@ -445,6 +639,7 @@ Score: [number]`;
                   {judgment}
                 </p>
 
+                {/* Score row */}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   paddingBottom: '1rem', marginBottom: '1rem',
@@ -466,6 +661,7 @@ Score: [number]`;
                   </div>
                 </div>
 
+                {/* Copy button */}
                 <button
                   className="copy-btn"
                   onClick={handleCopy}
@@ -475,10 +671,60 @@ Score: [number]`;
                     padding: '0.6rem', color: copied ? '#4ade80' : '#9ca3af',
                     fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'background 0.15s, color 0.15s',
+                    marginBottom: '0.75rem',
                   }}
                 >
                   {copied ? '✓ Copied to clipboard' : 'Copy Judgment'}
                 </button>
+
+                {/* ── VIRAL SHARE SECTION ── */}
+                {memeDataURL && (
+                  <div className="share-section-animate">
+                    <p style={{
+                      fontSize: '0.72rem', color: '#4b4b65', textAlign: 'center',
+                      marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>
+                      Share your shame
+                    </p>
+
+                    {/* Share buttons row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      <button className="share-btn download" onClick={handleDownloadMeme}>
+                        📥 Save Meme
+                      </button>
+                      <button className="share-btn twitter" onClick={handleShareTwitter}>
+                        🐦 Tweet It
+                      </button>
+                      <button className="share-btn whatsapp" onClick={handleShareWhatsApp}>
+                        💬 WhatsApp
+                      </button>
+                    </div>
+
+                    {/* Toggle meme preview */}
+                    <button
+                      onClick={() => setMemeVisible((v) => !v)}
+                      style={{
+                        width: '100%', marginTop: '8px',
+                        background: 'transparent', border: 'none',
+                        color: '#6b7280', fontSize: '0.78rem',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        textDecoration: 'underline', textUnderlineOffset: '2px',
+                      }}
+                    >
+                      {memeVisible ? 'Hide meme preview ▲' : 'Preview meme card ▼'}
+                    </button>
+
+                    {/* Meme preview image */}
+                    {memeVisible && (
+                      <img
+                        src={memeDataURL}
+                        alt="Your shame meme card"
+                        className="meme-preview-img"
+                      />
+                    )}
+                  </div>
+                )}
+                {/* ── END VIRAL SHARE SECTION ── */}
               </div>
             )}
 
