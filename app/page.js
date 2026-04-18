@@ -1048,7 +1048,7 @@ Score: [number]`;
                     e.target.style.background = 'transparent';
                   }}
                 >
-                  Clear History
+                  Clear your shame history
                 </button>
               </div>
             </div>
