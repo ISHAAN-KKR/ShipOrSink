@@ -26,6 +26,60 @@ const tones = {
 
 const POOP_EMOJIS = ['💩', '🤢', '💔', '😵', '🔥', '😤'];
 
+const STORAGE_KEY = 'ai_judge_history';
+
+// ── Data Management ──────────────────────────────────────────────────────────
+
+function loadJudgmentHistory() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    console.error('Failed to load judgment history:', e);
+    return [];
+  }
+}
+
+function saveJudgmentHistory(history) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.error('Failed to save judgment history:', e);
+  }
+}
+
+function addJudgment(input, judgment, score, mode) {
+  const history = loadJudgmentHistory();
+  const newEntry = {
+    id: Date.now(),
+    input: input.trim(),
+    judgment: judgment.trim(),
+    score,
+    mode,
+    timestamp: new Date().toISOString(),
+  };
+  history.unshift(newEntry); // Add to beginning
+  // Keep only last 100 entries
+  if (history.length > 100) history.splice(100);
+  saveJudgmentHistory(history);
+  return history;
+}
+
+function getLeaderboard() {
+  const history = loadJudgmentHistory();
+  if (history.length === 0) return { best: [], worst: [] };
+
+  // Sort by score for best and worst
+  const sorted = [...history].sort((a, b) => b.score - a.score);
+
+  return {
+    best: sorted.slice(0, 5), // Top 5 best scores
+    worst: sorted.slice(-5).reverse(), // Bottom 5 worst scores (reversed for display)
+  };
+}
+
 function getEmoji(score) {
   if (score <= 20) return '💀';
   if (score <= 40) return '😡';
@@ -192,9 +246,13 @@ export default function Home() {
   const [hint, setHint] = useState('');
   const [memeDataURL, setMemeDataURL] = useState('');
   const [memeVisible, setMemeVisible] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboard, setLeaderboard] = useState({ best: [], worst: [] });
 
   useEffect(() => {
     setHint(hints[Math.floor(Math.random() * hints.length)]);
+    // Load leaderboard on mount
+    setLeaderboard(getLeaderboard());
   }, []);
 
   function triggerPoopExplosion() {
@@ -272,6 +330,10 @@ Score: [number]`;
 
       setJudgment(judgeText);
       setScore(scoreNum);
+
+      // Save to history and update leaderboard
+      addJudgment(input, judgeText, scoreNum, mode);
+      setLeaderboard(getLeaderboard());
 
       // Generate meme card
       const dataURL = generateMemeDataURL(input, judgeText, scoreNum);
@@ -739,10 +801,258 @@ Score: [number]`;
             )}
           </div>
 
-          {/* Footer */}
-          <p style={{ textAlign: 'center', marginTop: '1.5rem', color: '#3a3a50', fontSize: '0.8rem' }}>
-            Your life choices are no longer safe.
-          </p>
+          {/* Leaderboard Toggle */}
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <button
+              onClick={() => setShowLeaderboard(!showLeaderboard)}
+              style={{
+                background: 'transparent',
+                border: '1px solid #3a3a50',
+                borderRadius: '12px',
+                padding: '0.75rem 1.5rem',
+                color: '#9ca3af',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#7c3aed';
+                e.target.style.color = '#c4b5fd';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#3a3a50';
+                e.target.style.color = '#9ca3af';
+              }}
+            >
+              {showLeaderboard ? 'Hide Hall of Shame 🏆' : 'Show Hall of Shame 🏆'}
+            </button>
+          </div>
+
+          {/* Leaderboard */}
+          {showLeaderboard && (
+            <div
+              className="result-animate"
+              style={{
+                marginTop: '2rem',
+                background: '#111116',
+                border: '1px solid #2a2a3a',
+                borderRadius: '20px',
+                padding: '2rem',
+              }}
+            >
+              <h2 style={{
+                textAlign: 'center',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#e8e6ff',
+                marginBottom: '2rem',
+                background: 'linear-gradient(135deg, #a78bfa, #ec4899, #f97316)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                🏆 Hall of Shame 🏆
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* Best Roasts */}
+                <div>
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    color: '#4ade80',
+                    marginBottom: '1rem',
+                    textAlign: 'center',
+                  }}>
+                    👑 Best Life Choices
+                  </h3>
+                  {leaderboard.best.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {leaderboard.best.map((entry, index) => (
+                        <div
+                          key={entry.id}
+                          style={{
+                            background: 'rgba(74,222,128,0.1)',
+                            border: '1px solid rgba(74,222,128,0.3)',
+                            borderRadius: '12px',
+                            padding: '1rem',
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.5rem',
+                          }}>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              color: '#6b7280',
+                              fontWeight: 'bold',
+                            }}>
+                              #{index + 1}
+                            </span>
+                            <span style={{
+                              fontSize: '1.2rem',
+                              fontWeight: 'bold',
+                              color: '#4ade80',
+                            }}>
+                              {entry.score}/100 {getEmoji(entry.score)}
+                            </span>
+                          </div>
+                          <p style={{
+                            fontSize: '0.85rem',
+                            color: '#c4b5fd',
+                            fontStyle: 'italic',
+                            marginBottom: '0.5rem',
+                            lineHeight: '1.4',
+                          }}>
+                            "{entry.input}"
+                          </p>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: '#9ca3af',
+                            lineHeight: '1.3',
+                          }}>
+                            {entry.judgment}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      fontSize: '0.9rem',
+                      padding: '2rem',
+                    }}>
+                      No judgments yet. Be the first! 👑
+                    </p>
+                  )}
+                </div>
+
+                {/* Worst Roasts */}
+                <div>
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    color: '#f87171',
+                    marginBottom: '1rem',
+                    textAlign: 'center',
+                  }}>
+                    💩 Worst Life Choices
+                  </h3>
+                  {leaderboard.worst.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {leaderboard.worst.map((entry, index) => (
+                        <div
+                          key={entry.id}
+                          style={{
+                            background: 'rgba(248,113,113,0.1)',
+                            border: '1px solid rgba(248,113,113,0.3)',
+                            borderRadius: '12px',
+                            padding: '1rem',
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.5rem',
+                          }}>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              color: '#6b7280',
+                              fontWeight: 'bold',
+                            }}>
+                              #{index + 1}
+                            </span>
+                            <span style={{
+                              fontSize: '1.2rem',
+                              fontWeight: 'bold',
+                              color: '#f87171',
+                            }}>
+                              {entry.score}/100 {getEmoji(entry.score)}
+                            </span>
+                          </div>
+                          <p style={{
+                            fontSize: '0.85rem',
+                            color: '#c4b5fd',
+                            fontStyle: 'italic',
+                            marginBottom: '0.5rem',
+                            lineHeight: '1.4',
+                          }}>
+                            "{entry.input}"
+                          </p>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: '#9ca3af',
+                            lineHeight: '1.3',
+                          }}>
+                            {entry.judgment}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      fontSize: '0.9rem',
+                      padding: '2rem',
+                    }}>
+                      No judgments yet. Be the first! 💩
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div style={{
+                marginTop: '2rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #2a2a3a',
+                textAlign: 'center',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <p style={{
+                  color: '#6b7280',
+                  fontSize: '0.8rem',
+                }}>
+                  Total judgments: {loadJudgmentHistory().length}
+                </p>
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to clear all judgment history?')) {
+                      saveJudgmentHistory([]);
+                      setLeaderboard({ best: [], worst: [] });
+                    }
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #dc2626',
+                    borderRadius: '8px',
+                    padding: '0.4rem 0.8rem',
+                    color: '#fca5a5',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(220,38,38,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'transparent';
+                  }}
+                >
+                  Clear History
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </>
