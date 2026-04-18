@@ -370,16 +370,16 @@ Score: [number]`;
 
   function handleShareTwitter() {
     const text = encodeURIComponent(
-      `I confessed my life choices to an AI judge and scored ${score}/100 ${getEmoji(score)}\n\n"${input}"\n\nVerdict: "${judgment}"\n\n#AIJudge #LifeChoices`
+      `I confessed my life choices to an AI judge and scored ${score}/100 ${getEmoji(score)}\n\n"${input}"\n\nVerdict: "${judgment}"\n\n#AIJudge #LifeChoices\n\nTry it: ${window.location.origin}`
     );
-    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    window.open(`https://x.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
   }
 
   function handleShareWhatsApp() {
     const text = encodeURIComponent(
-      `😂 AI just judged my life choice and I scored *${score}/100* ${getEmoji(score)}\n\n*Confession:* "${input}"\n\n*Verdict:* "${judgment}"\n\nTry it yourself 👇`
+      `😂 AI just judged my life choice and I scored *${score}/100* ${getEmoji(score)}\n\n*Confession:* "${input}"\n\n*Verdict:* "${judgment}"\n\nTry it yourself 👇 ${window.location.origin}`
     );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
   }
 
   return (
