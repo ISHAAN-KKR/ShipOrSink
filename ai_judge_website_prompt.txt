@@ -1,0 +1,163 @@
+You are an expert fullstack engineer and creative UI designer.
+
+Build a complete, modern, and visually appealing single-page web app called:
+
+"AI Judges Your Life Choices"
+
+CORE CONCEPT: 
+This is a fun, bruttaly savage AI-powered website where users input a life decision, and the AI judges them with brutal humor and gives a score out of 100.
+
+-----------------------------------
+UI/UX REQUIREMENTS (VERY IMPORTANT)
+-----------------------------------
+- Dark theme (black/charcoal background)
+- Clean, modern, slightly meme-style aesthetic
+- Use Tailwind CSS
+- Smooth animations (hover, fade-in, button click)
+- Fully responsive (mobile + desktop)
+
+-----------------------------------
+COMPONENTS
+-----------------------------------
+
+1. Title:
+   AI Judges Your Life Choices
+
+2. Subtitle:
+   "Type your decision. Face the consequences."
+
+3. Input box:
+   - Placeholder: "e.g. I skipped gym again"
+   - Rounded, modern design
+
+4. Mode Selector (Dropdown):
+   - Savage
+   - Brutally savage
+   - Dead savage 
+
+5. Button:
+   - Label: "Judge Me"
+   - Add hover + click animation
+
+6. Loading indicator:
+   - Text: "Judging your life... ⏳"
+   - Smooth fade-in/out
+
+7. Output Card:
+   - Displays:
+     - Judgment text
+     - Score (0–100)
+   - Color based on score:
+     - 0–40 → red
+     - 41–70 → yellow
+     - 71–100 → green
+
+8. Copy Button:
+   - Copies output to clipboard
+
+-----------------------------------
+AI INTEGRATION (GROQ)
+-----------------------------------
+
+Use GROQ API (OpenAI-compatible format)
+
+Endpoint:
+https://api.groq.com/openai/v1/chat/completions
+
+Model:
+llama-3.3-70b-versatile
+
+-----------------------------------
+API KEY SETUP
+-----------------------------------
+Use:
+const GROQ_API_KEY = "GROQ_API_KEY";
+
+Clearly indicate where to insert API key.
+
+-----------------------------------
+REQUEST FORMAT (STRICT)
+-----------------------------------
+
+Use fetch() with:
+
+POST https://api.groq.com/openai/v1/chat/completions
+
+Headers:
+- Authorization: Bearer ${GROQ_API_KEY}
+- Content-Type: application/json
+
+Body:
+{
+  "model": "llama-3.3-70b-versatile",
+  "messages": [
+    {
+      "role": "user",
+      "content": PROMPT
+    }
+  ]
+}
+
+Parse response from:
+data.choices[0].message.content
+
+-----------------------------------
+PROMPT LOGIC
+-----------------------------------
+
+Tone based on mode:
+
+Savage:
+"Be Savage and attack the user"
+
+Brutally Savage:
+"Be sarcastic Savage and attack personally"
+
+Dead Savage:
+"Be brutally savage and offensive"
+
+Final Prompt:
+
+You are a funny AI that judges people's life decisions.
+[TONE]
+
+User input: "[INPUT]"
+
+Give:
+1. A short witty judgment (max 2 lines)
+2. A score out of 100
+
+Format strictly as:
+Judgment: ...
+Score: ...
+
+-----------------------------------
+ERROR HANDLING
+-----------------------------------
+
+If API fails or key missing:
+- Errors Occur qith no explainatio, offering only silence or a strange animation.
+- example brutal savage Silence or animation
+
+-----------------------------------
+TECH REQUIREMENTS
+-----------------------------------
+
+- NextJS
+- Clean, readable code
+
+-----------------------------------
+BONUS
+- Glow effects
+- Emoji reactions based on score
+- Random placeholder examples
+- Subtle animations
+
+-----------------------------------
+OUTPUT FORMAT
+-----------------------------------
+
+Return ONLY the full working code 
+No explanations.
+
+Make the website feel premium, fun, and viral.
