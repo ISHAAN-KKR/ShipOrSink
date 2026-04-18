@@ -75,8 +75,8 @@ function getLeaderboard() {
   const sorted = [...history].sort((a, b) => b.score - a.score);
 
   return {
-    best: sorted.slice(0, 5), // Top 5 best scores
-    worst: sorted.slice(-5).reverse(), // Bottom 5 worst scores (reversed for display)
+    best: sorted.slice(0, 1), // Top 1 best score
+    worst: sorted.slice(-1), // Bottom 1 worst score
   };
 }
 
@@ -177,7 +177,7 @@ function generateMemeDataURL(input, judgment, score) {
   ctx.textAlign = 'left';
   ctx.fillText('AI LIFE JUDGE', 28, 38);
   ctx.textAlign = 'right';
-  ctx.fillText('aijudge.app', W - 28, 38);
+  ctx.fillText('ship-or-sink-ai-judge.vercel.app', W - 28, 38);
   ctx.textAlign = 'left';
 
   // Confession pill background
@@ -856,7 +856,7 @@ Score: [number]`;
               </h2>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                {/* Best Roasts */}
+                {/* Best Roast */}
                 <div>
                   <h3 style={{
                     fontSize: '1.1rem',
@@ -865,35 +865,25 @@ Score: [number]`;
                     marginBottom: '1rem',
                     textAlign: 'center',
                   }}>
-                    👑 Best Life Choices
+                    👑 Best Life Choice
                   </h3>
                   {leaderboard.best.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {leaderboard.best.map((entry, index) => (
-                        <div
-                          key={entry.id}
-                          style={{
-                            background: 'rgba(74,222,128,0.1)',
-                            border: '1px solid rgba(74,222,128,0.3)',
-                            borderRadius: '12px',
-                            padding: '1rem',
-                          }}
-                        >
+                    <div style={{
+                      background: 'rgba(74,222,128,0.1)',
+                      border: '1px solid rgba(74,222,128,0.3)',
+                      borderRadius: '12px',
+                      padding: '1.5rem',
+                    }}>
+                      {leaderboard.best.map((entry) => (
+                        <div key={entry.id}>
                           <div style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
+                            justifyContent: 'center',
                             alignItems: 'center',
-                            marginBottom: '0.5rem',
+                            marginBottom: '1rem',
                           }}>
                             <span style={{
-                              fontSize: '0.8rem',
-                              color: '#6b7280',
-                              fontWeight: 'bold',
-                            }}>
-                              #{index + 1}
-                            </span>
-                            <span style={{
-                              fontSize: '1.2rem',
+                              fontSize: '2rem',
                               fontWeight: 'bold',
                               color: '#4ade80',
                             }}>
@@ -901,18 +891,20 @@ Score: [number]`;
                             </span>
                           </div>
                           <p style={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.9rem',
                             color: '#c4b5fd',
                             fontStyle: 'italic',
-                            marginBottom: '0.5rem',
+                            marginBottom: '1rem',
                             lineHeight: '1.4',
+                            textAlign: 'center',
                           }}>
                             "{entry.input}"
                           </p>
                           <p style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             color: '#9ca3af',
                             lineHeight: '1.3',
+                            textAlign: 'center',
                           }}>
                             {entry.judgment}
                           </p>
@@ -931,7 +923,7 @@ Score: [number]`;
                   )}
                 </div>
 
-                {/* Worst Roasts */}
+                {/* Worst Roast */}
                 <div>
                   <h3 style={{
                     fontSize: '1.1rem',
@@ -940,35 +932,25 @@ Score: [number]`;
                     marginBottom: '1rem',
                     textAlign: 'center',
                   }}>
-                    💩 Worst Life Choices
+                    💩 Worst Life Choice
                   </h3>
                   {leaderboard.worst.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {leaderboard.worst.map((entry, index) => (
-                        <div
-                          key={entry.id}
-                          style={{
-                            background: 'rgba(248,113,113,0.1)',
-                            border: '1px solid rgba(248,113,113,0.3)',
-                            borderRadius: '12px',
-                            padding: '1rem',
-                          }}
-                        >
+                    <div style={{
+                      background: 'rgba(248,113,113,0.1)',
+                      border: '1px solid rgba(248,113,113,0.3)',
+                      borderRadius: '12px',
+                      padding: '1.5rem',
+                    }}>
+                      {leaderboard.worst.map((entry) => (
+                        <div key={entry.id}>
                           <div style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
+                            justifyContent: 'center',
                             alignItems: 'center',
-                            marginBottom: '0.5rem',
+                            marginBottom: '1rem',
                           }}>
                             <span style={{
-                              fontSize: '0.8rem',
-                              color: '#6b7280',
-                              fontWeight: 'bold',
-                            }}>
-                              #{index + 1}
-                            </span>
-                            <span style={{
-                              fontSize: '1.2rem',
+                              fontSize: '2rem',
                               fontWeight: 'bold',
                               color: '#f87171',
                             }}>
@@ -976,18 +958,20 @@ Score: [number]`;
                             </span>
                           </div>
                           <p style={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.9rem',
                             color: '#c4b5fd',
                             fontStyle: 'italic',
-                            marginBottom: '0.5rem',
+                            marginBottom: '1rem',
                             lineHeight: '1.4',
+                            textAlign: 'center',
                           }}>
                             "{entry.input}"
                           </p>
                           <p style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             color: '#9ca3af',
                             lineHeight: '1.3',
+                            textAlign: 'center',
                           }}>
                             {entry.judgment}
                           </p>
